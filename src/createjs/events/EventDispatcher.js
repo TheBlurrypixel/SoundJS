@@ -169,6 +169,20 @@ this.createjs = this.createjs||{};
 		else { arr.push(listener); }
 		return listener;
 	};
+
+	/**
+	 * Can be used to promisify an eventListener
+	 * 
+	 * @method addEventListenerPromise
+	 * @param {String} eventType The string type of the event.
+	 * @param {Function} inCallback A function that returns a eventListener that can resolve the returned promise
+	 * @return {Object} Returns a promise that can be resolved by the returned eventListener above
+	 **/
+	p.addEventListenerPromise = function(eventType, inCallback) {
+		return new Promise(res => {
+			this.addEventListener(eventType, inCallback(res));
+		});
+	};
 	
 	/**
 	 * A shortcut method for using addEventListener that makes it easier to specify an execution scope, have a listener

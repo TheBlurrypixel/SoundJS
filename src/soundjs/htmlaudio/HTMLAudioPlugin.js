@@ -218,13 +218,27 @@ this.createjs = this.createjs || {};
 		}  // OJR another way to do this might be canPlayType:"m4a", codex: mp4
 	};
 
+	/**
+	 * adding playEmptySound() to HTMLAudio
+	 * 
+	 * Can play an empty sound to help with unlocking audio in mostly mobile devices
+	 * @method isSupported
+	 * @return {Prmoise} promise that resolves the empty sound
+	 * @static
+	 */
+	s.playEmptySound = function () {
+		var playbackResource = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+		return playbackResource.play().then(() => { return playbackResource; });
+	};
 
 // public methods
+	// fix so hidden tag is our base tag in the HTMLAudioTagPool
 	p.register = function (loadItem) {
+		createjs.HTMLAudioTagPool._tags[loadItem.src] = createjs.HTMLAudioTagPool._tags[loadItem.src] || loadItem.tag;
 		var tag = createjs.HTMLAudioTagPool.get(loadItem.src);
 		var loader = this.AbstractPlugin_register(loadItem);
 		loader.setTag(tag);
-
+	
 		return loader;
 	};
 

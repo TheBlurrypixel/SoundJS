@@ -241,22 +241,47 @@ this.createjs = this.createjs || {};
 		return audioNode;
 	};
 
+	// BEGIN code to delay setTimeout before unlock audio and wait until AudioContext is running
+	// and code to compensate for window.alert unsynching timers for looping sounds
 	p._handleSoundReady = function (event) {
 		this.gainNode.connect(s.destinationNode);  // this line can cause a memory leak.  Nodes need to be disconnected from the audioDestination or any sequence that leads to it.
+		var dur = this._duration * 0.001, pos = Math.min(Math.max(0, this._position) * 0.001, dur);
 
-		var dur = this._duration * 0.001,
-			pos = Math.min(Math.max(0, this._position) * 0.001, dur);
-		this.sourceNode = this._createAndPlayAudioNode((s.context.currentTime - dur), pos);
-		this._playbackStartTime = this.sourceNode.startTime - pos;
-
-		this._soundCompleteTimeout = setTimeout(this._endedHandler, (dur - pos) * 1000);
-
-		if(this._loop != 0) {
-			this._sourceNodeNext = this._createAndPlayAudioNode(this._playbackStartTime, 0);
+		// dont want to start timer if AudioContext is suspended so wait until it is running
+		if(createjs.Sound.activePlugin.context.state == 'running') {
+			this._playbackStartTime = s.context.currentTime;
+			
+			this.sourceNode = this._createAndPlayAudioNode((s.context.currentTime - dur), pos, true);
+			this._playbackStartTime = createjs.WebAudioSoundInstance.context.currentTime - pos;
+			
+			clearTimeout(this._soundCompleteTimeout);
+			this._soundCompleteTimeout = setTimeout(this._endedHandler, (dur - pos) * 1000);
+			createjs.Sound.activePlugin.context.removeEventListener('statechange', handleStateChange);
+			
+			if(this._loop != 0) this._sourceNodeNext = this._createAndPlayAudioNode(this._playbackStartTime, 0);					
+		}
+		else {
+			var handleStateChange;
+			createjs.Sound.activePlugin.context.addEventListener('statechange', handleStateChange = (function() {
+				if(createjs.Sound.activePlugin.context.state == 'running') {
+					this._playbackStartTime = s.context.currentTime;
+						
+					this.sourceNode = this._createAndPlayAudioNode((s.context.currentTime - dur), pos, true);
+					this._playbackStartTime = s.context.currentTime - pos;
+					
+					clearTimeout(this._soundCompleteTimeout);
+					this._soundCompleteTimeout = setTimeout(this._endedHandler, (dur - pos) * 1000);
+					createjs.Sound.activePlugin.context.removeEventListener('statechange', handleStateChange);
+						
+					if(this._loop != 0) this._sourceNodeNext = this._createAndPlayAudioNode(this._playbackStartTime, 0);
+				}
+			}).bind(this));
 		}
 	};
 
 	/**
+	 * Modified code to delay setTimeout before unlock audio and wait until AudioContext is running
+	 * 
 	 * Creates an audio node using the current src and context, connects it to the gain node, and starts playback.
 	 * @method _createAndPlayAudioNode
 	 * @param {Number} startTime The time to add this to the web audio context, in seconds.
@@ -265,15 +290,18 @@ this.createjs = this.createjs || {};
 	 * @protected
 	 * @since 0.4.1
 	 */
-	p._createAndPlayAudioNode = function(startTime, offset) {
+	p._createAndPlayAudioNode = function(startTime, offset, playNow = false) {
 		var audioNode = s.context.createBufferSource();
 		audioNode.buffer = this.playbackResource;
 		audioNode.connect(this.panNode);
 		var dur = this._duration * 0.001;
-		audioNode.startTime = startTime + dur;
-		audioNode.start(audioNode.startTime, offset+(this._startTime*0.001), dur - offset);
+
+		audioNode.startTime = playNow ? 0 : (startTime + dur); // zero for immediate playback
+		var bufferOffset = playNow ? offset : 0; // zero for full length playback
+		
+		audioNode.start(audioNode.startTime, bufferOffset, dur);
 		return audioNode;
-	};
+	};	
 
 	p._pause = function () {
 		this._position = (s.context.currentTime - this._playbackStartTime) * 1000;  // * 1000 to give milliseconds, lets us restart at same point

@@ -68,9 +68,15 @@ this.createjs = this.createjs || {};
 
 
 // private methods
+	//
+	// overriding to add datatURI option for WebAudio
 	p._createRequest = function() {
-		this._request = new createjs.XHRRequest(this._item, false);
-		this._request.setResponseType("arraybuffer");
+		if(this._item.dataURI || this._item.tag && this._item.tag.src.startsWith('data:'))
+			this._request = new createjs.DataURIRequest(this._item, true);
+		else {
+			this._request = new createjs.XHRRequest(this._item, false);
+			this._request.setResponseType("arraybuffer");			
+		}
 	};
 
 	p._sendComplete = function (event) {

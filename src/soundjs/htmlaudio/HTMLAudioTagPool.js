@@ -80,11 +80,13 @@ this.createjs = this.createjs || {};
 // Static Methods
 	/**
 	  * Get an audio tag with the given source.
+	  * 
+	  * Moidified to support DataURI
 	  * @method get
 	  * @param {String} src The source file used by the audio tag.
 	  * @static
 	  */
-	 s.get = function (src) {
+	s.get = function (src) {
 		var t = s._tags[src];
 		if (t == null) {
 			// create new base tag
@@ -93,14 +95,15 @@ this.createjs = this.createjs || {};
 		} else {
 			// get base or pool
 			if (s._tagUsed[src]) {
+				var dataURI = t.src && t.src.startsWith('data:') ? t.src :  null;
 				t = s._tagPool.get();
-				t.src = src;
+				t.src = dataURI || src;
 			} else {
 				s._tagUsed[src] = true;
 			}
 		}
 		return t;
-	 };
+	};
 
 	 /**
 	  * Return an audio tag to the pool.

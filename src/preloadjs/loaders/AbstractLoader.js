@@ -286,7 +286,6 @@ this.createjs = this.createjs || {};
 	 * @param {AbstractLoader} loader The loader that has been initialized.
 	 */
 
-
 	/**
 	 * Get a reference to the manifest item that is loaded by this loader. In some cases this will be the value that was
 	 * passed into {{#crossLink "LoadQueue"}}{{/crossLink}} using {{#crossLink "LoadQueue/loadFile"}}{{/crossLink}} or

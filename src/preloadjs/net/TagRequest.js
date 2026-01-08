@@ -86,20 +86,25 @@ this.createjs = this.createjs || {};
 	var p = createjs.extend(TagRequest, createjs.AbstractRequest);
 
 	// public methods
+	//
+	// modifyying so it does not overwrite src attribute if coming from a tag property
+	// otherwise it may overwrite dataURI source in hidden tags
 	p.load = function () {
 		this._tag.onload = createjs.proxy(this._handleTagComplete, this);
 		this._tag.onreadystatechange = createjs.proxy(this._handleReadyStateChange, this);
 		this._tag.onerror = createjs.proxy(this._handleError, this);
-
+	
 		var evt = new createjs.Event("initialize");
 		evt.loader = this._tag;
-
+	
 		this.dispatchEvent(evt);
-
+	
 		this._loadTimeout = setTimeout(createjs.proxy(this._handleTimeout, this), this._item.loadTimeout);
-
-		this._tag[this._tagSrcAttribute] = this._item.src;
-
+	
+		// if it this._item.dataURI exists this request is never made, we don't need to set dataURI to src
+		// if this._item.tag exists then src is never changed
+		if(!this._item.tag || this._item.tag !== this._tag) this._tag[this._tagSrcAttribute] = this._item.src;
+	
 		// wdg:: Append the tag AFTER setting the src, or SVG loading on iOS will fail.
 		if (this._tag.parentNode == null) {
 			createjs.DomUtils.appendToBody(this._tag);

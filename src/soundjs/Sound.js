@@ -256,7 +256,7 @@ this.createjs = this.createjs || {};
 	}
 
 	var s = Sound;
-
+	var SYMBOLS = createjs.SYMBOLS;
 
 // Static Properties
 	/**
@@ -541,6 +541,121 @@ this.createjs = this.createjs || {};
 	s._getMute = function () {
 		return this._masterMute;
 	};
+	
+	/**
+	 * internal alertOverride value
+	 * @property _alertOverride
+	 * @type {Boolean}
+	 * @default false
+	 * @private
+	 */
+	s._alertOverride = false;
+
+	/**
+	 * getter for alertOverride
+	 * @method _getAlertOverride
+	 * @private
+	 * @static
+	 * @return {Boolean}
+	 **/
+	s._getAlertOverride = function() {
+		return this._alertOverride;
+	};
+
+	/**
+	 * setter for alertOverride
+	 * @method _setAlertOverride
+	 * @static
+	 * @private
+	 **/
+	s._setAlertOverride = function(override) {
+		if(override) {
+			if(!window[SYMBOLS.ALERT]) {
+				window[SYMBOLS.ALERT] = window.alert;
+				window.alert = function() {
+					if(s.activePlugin){
+						if((s.activePlugin instanceof createjs.WebAudioPlugin) && s.activePlugin.context.state == 'running') {
+							var pausedSounds = createjs.Sound.pauseInstances();
+							window[SYMBOLS.ALERT].apply(window, arguments);
+							s.unpauseInstances(pausedSounds);
+							s.activePlugin.context.resume();
+						}
+						else if(s.activePlugin instanceof createjs.HTMLAudioPlugin) {
+							var pausedSounds = createjs.Sound.pauseInstances();
+							window[SYMBOLS.ALERT].apply(window, arguments);
+							s.unpauseInstances(pausedSounds);
+						}
+						else
+							window[SYMBOLS.ALERT].apply(window, arguments);
+					}
+					else
+						window[SYMBOLS.ALERT].apply(window, arguments);
+				};
+			}
+			this._alertOverride = true;
+		}
+		else {
+			if(window[SYMBOLS.ALERT]) {
+				window.alert = window[SYMBOLS.ALERT];
+				delete window[SYMBOLS.ALERT];
+			}
+			this._alertOverride = false;
+		}
+	};
+
+	/**
+	 * pauses all instances
+	 * 
+	 * @method pauseInstances
+	 * @returns {Array}
+	 * @static
+	 */
+	s.pauseInstances = function() {
+		if(this.activePlugin){
+			var pausedInstances = [];
+			if(this.activePlugin instanceof createjs.WebAudioPlugin) {
+				this._instances.forEach(instance => {
+					if(!instance.paused) {
+						instance._pause();
+						pausedInstances.push(instance);
+					}
+				});
+				return pausedInstances;
+			}
+			else if(this.activePlugin instanceof createjs.HTMLAudioPlugin) {
+				var pausedInstances = [];
+				this._instances.forEach(instance => {
+					instance.wasPaused = instance.paused;
+					instance.paused = true;
+					pausedInstances.push(instance);
+				});
+				return pausedInstances;
+			}
+		}
+		return null;
+	};
+
+	/**
+	 * unpauses all instances
+	 * 
+	 * @method unpauseInstances
+	 * @param {Array} pausedInstances sound instances to unpause
+	 * @returns {Array} pausedInstances for chaining
+	 * @static
+	 */
+	s.unpauseInstances = function(pausedInstances) {
+		if(this.activePlugin) {
+			if(this.activePlugin instanceof createjs.WebAudioPlugin)
+				pausedInstances.forEach(instance => instance._resume());
+			else if(this.activePlugin instanceof createjs.HTMLAudioPlugin) {				
+				pausedInstances.forEach(instance => {
+					if('wasPaused' in instance) instance.paused = instance.wasPaused;
+					delete instance.wasPaused;
+				});
+			}
+		}
+		return pausedInstances;
+	};
 
 	/**
 	 * Use the {{#crossLink "Sound/muted:property"}}{{/crossLink}} property instead.
@@ -632,7 +747,8 @@ this.createjs = this.createjs || {};
 	Object.defineProperties(s, {
 		volume: { get: s._getMasterVolume, set: s._setMasterVolume },
 		muted: { get: s._getMute, set: s._setMute },
-		capabilities: { get: s._getCapabilities }
+		capabilities: { get: s._getCapabilities },
+		alertOverride: { get: s._getAlertOverride, set: s._setAlertOverride }
 	});
 
 
@@ -1531,6 +1647,7 @@ this.createjs = this.createjs || {};
 	};
 
 	createjs.Sound = Sound;
+	createjs.Sound.alertOverride = true;
 
 	/**
 	 * An internal class that manages the number of active {{#crossLink "AbstractSoundInstance"}}{{/crossLink}} instances for
