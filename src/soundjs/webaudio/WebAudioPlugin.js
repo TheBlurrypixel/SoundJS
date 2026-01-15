@@ -352,7 +352,7 @@ this.createjs = this.createjs || {};
 		var AudioCtor = (window.AudioContext || window.webkitAudioContext);
 		if (AudioCtor == null) { return null; }
 		var context = new AudioCtor();
-		console.warn("The AudioContext is ready"); // Dan Zen 3/27/21
+		// console.warn("The AudioContext is ready"); // Dan Zen 3/27/21
 
 		// Check if hack is necessary. Only occurs in iOS6+ devices
 		// and only when you first boot the iPhone, or play a audio/video
