@@ -171,7 +171,7 @@ this.createjs = this.createjs||{};
 	};
 
 	/**
-	 * Can be used to promisify an eventListener
+	 * Modify Can be used to promisify an eventListener
 	 * 
 	 * @method addEventListenerPromise
 	 * @param {String} eventType The string type of the event.
@@ -181,6 +181,23 @@ this.createjs = this.createjs||{};
 	p.addEventListenerPromise = function(eventType, inCallback) {
 		return new Promise(res => {
 			this.addEventListener(eventType, inCallback(res));
+		});
+	};
+	
+	/**
+	 * Modify Can be used to promisify 2 events for an eventListener
+	 * 
+	 * @method doubleAddEventListenerPromise
+	 * @param {String} eventType1 The string type of the first event.
+	 * @param {String} eventType2 The string type of the second event.
+	 * @param {Function} inCallback A function that returns a eventListener that can resolve the returned promise
+	 * @return {Object} Returns a promise that can be resolved by the returned eventListener above
+	 **/
+	p.doubleAddEventListenerPromise = function(eventType1, eventType2, inCallback) {
+		return new Promise(res => {
+			var eventHandler = inCallback(res);
+			this.addEventListener(eventType1, eventHandler);
+			this.addEventListener(eventType2, eventHandler);
 		});
 	};
 	
